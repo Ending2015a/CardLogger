@@ -5,7 +5,9 @@ import logging
 
 
 MODULE_PATH = __name__.rsplit('.', 1)[0]
-C = __import__(MODULE_PATH+'.cmd_colors.Color')
+c_module = __import__(MODULE_PATH+'.cmd_colors', fromlist=['.'])
+C = getattr(c_module, 'Color')
+
 
 #from sshex.logger.cmd_colors import Color as C
 

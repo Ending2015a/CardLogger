@@ -76,7 +76,7 @@ class LoggingConfig:
                 },
             },
             'loggers': {
-                PARENT_NAME: {
+                ROOT_NAME: {
                     'handlers': ['console'] ,
                     'level': 'DEBUG',
                     'propagate': False,
@@ -92,7 +92,7 @@ class LoggingConfig:
                 'formatter': ROOT_NAME
             }
 
-            config['loggers'][PARENT_NAME]['handlers'] += [filename]
+            config['loggers'][ROOT_NAME]['handlers'] += [filename]
 
 
         dictConfig(config)
