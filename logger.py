@@ -119,7 +119,6 @@ class LoggingConfig:
 
     @classmethod
     def Use(cls, **kwargs):
-        print(kwargs)
         reset = kwargs.pop('reset', False)
 
         conf = cls(**kwargs)
