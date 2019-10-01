@@ -5,7 +5,15 @@
 
 ## Usage
 
+```
+├── main.py
+└── my_module (package)
+    └── logger
+    └── ......
+```
+
 ```python
+# main.py
 import my_module.logger
 
 my_module.logger.Config.Use(filename='hello.log', level='DEBUG', colored=True)
