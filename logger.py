@@ -26,14 +26,37 @@ def makedirs(path):
             raise
 
 
-def getLogger(name=None, level='DEBUG', prefix=ROOT_NAME):
+def _exists(name):
+    '''
+    Check if a logger exists
+    '''
+    return name in logging.Logger.manager.loggerDict
+
+
+def exists(name=None, prefix=ROOT_NAME):
     if name is not None:
         name = '.'.join([prefix, name])
     else:
         name = prefix
 
+    return _exists(name)
+
+
+def getLogger(name=None, level=None, prefix=ROOT_NAME):
+    if name is not None:
+        name = '.'.join([prefix, name])
+    else:
+        name = prefix
+
+
+    # if the logger does not exist, nad no level is specified, then use default level (DEBUG)
+    if (level is None) and (not _exists(name)):
+        level = 'DEBUG' 
+
     logger = logging.getLogger(name)
-    logger.setLevel(logging.getLevelName(level))
+
+    if not (level is None):
+        logger.setLevel(logging.getLevelName(level))
 
     return logger
 
