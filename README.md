@@ -1,7 +1,8 @@
 # logger
 
 ## Installation
-1. Just put this repository anywhere in your package.
+1. Just clone this repository anywhere in your package.
+
 
 ## Usage
 
