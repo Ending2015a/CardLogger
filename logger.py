@@ -1,9 +1,12 @@
+# --- built in ---
 import os
 import sys
 import time
 import logging
 
 from logging.config import dictConfig
+from collections import OrderedDict
+
 
 
 LOG_FORMAT = '[%(asctime)s|%(threadName)s|%(levelname)s|%(name)s:%(filename)s:%(lineno)d]: %(message)s'
@@ -62,8 +65,161 @@ def getLogger(name=None, level=None, prefix=ROOT_NAME):
 
 
 
+
+class GroupLogger(logging.Logger):
+    def __init__(self, name, level=logging.NOTSET):
+        super(GroupLogger, self).__init__(name, level)
+
+        self.header = None
+        self.groups = OrderedDict()
+        self.groups['None'] = []
+        self.current_group = 'None'
+
+    def set_header(self, name=None):
+        if not isinstance(name, str):
+            raise ValueError('Header name must be a str type')
+        self.header = name
+
+    def subgroup(self, name=None):
+
+        if name is None:
+            name = 'None'
+
+        if not isinstance(name, str):
+            raise ValueError('Group name must be str type')
+
+        self.current_group = name
+
+    def add_row(self, *kargs, fmt=None, **kwargs):
+        if not self.current_group in self.groups:
+            self.groups[self.current_group] = []
+
+        self.groups[self.current_group].append( (kargs, kwargs, fmt) )
+
+    def clear(self):
+        self.header = None
+        self.groups = OrderedDict()
+        self.groups['None'] = []
+        self.current_group = 'None'
+
+    def _create_header(self, width):
+        if self.header is None:
+            header = '=' * width
+
+        else:
+            half = (width - len(self.header)) // 2 - 1
+            header = ' '.join(['=' * half, self.header, '=' * half])
+
+        return header
+
+    def _create_tail(self, width):
+        return '=' * width
+
+    def _create_subheader(self, name, width):
+
+        #'======= Epoch 5/10 ======='
+        #'|------- Training -------|'
+        #'| loss: 100.0            |'
+        #'| entropy: 1132121.456   |'
+        #'|--------- Eval ---------|'
+        #'| loss: 2121.17455       |'
+        #'=========================='
+
+        remain = width - len(name)
+        l_half = remain // 2
+        r_half = remain - l_half
+
+        l_half -= 2
+        r_half -= 2
+
+        subheader = ''.join(['|', '-'*l_half, ' ', name, ' ', '-'*r_half, '|'])
+
+        return subheader
+
+    def _create_row(self, string, width):
+        remain = width - len(string) - 4
+
+        return ''.join(['| ', string, ' '*remain, ' |'])
+
+    def flush(self, level=logging.INFO):
+        
+        group_str = OrderedDict()
+
+        max_length = 0
+
+        # compute max row length
+        for group, rows in self.groups.items():
+
+            if group not in group_str:
+                group_str[group] = []
+
+            for row in rows:
+                kargs = row[0]
+                kwargs = row[1]
+                fmt = row[2]
+
+                if fmt is None:
+                    fmt = '{}'
+                    if len(kargs) > 1:
+                        fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
+
+                string = fmt.format(*kargs, **kwargs)
+
+                group_str[group].append(string)
+
+                max_length = max_length if len(string) < max_length else len(string)
+
+        max_width = max_length + len('|  |')
+
+        # compute max sub header length
+        for group in self.groups.keys():
+            group_width = len(group) + len('|-  -|')
+
+            max_width = max_width if group_width < max_width else group_width
+
+        if self.header is not None:
+            header_width = len(self.header) + len('=====  =====')
+
+            max_width = max_width if header_width < max_width else header_width
+
+            if (max_width - len(self.header)) % 2 > 0:
+                max_width += 1
+
+
+        if isinstance(level, str):
+            level = logging.getLevelName(level)
+
+        if not isinstance(level, int):
+            if logging.raiseExceptions:
+                raise TypeError('level must be an integer or string')
+            else:
+                return
+
+
+        # output to log
+        if self.isEnabledFor(level):
+            self._log(level, self._create_header(max_width), None)
+
+            for group, strings in group_str.items():
+
+                if len(strings) == 0:
+                    continue
+
+                if group is not 'None':
+
+                    self._log(level, self._create_subheader(group, max_width), None)
+
+                for contant in strings:
+                    self._log(level, self._create_row(contant, max_width), None)
+
+            self._log(level, self._create_tail(max_width), None)
+            self._log(level, '', None)
+
+        self.clear()
+
+
 class LoggingConfig:
-    def __init__(self, filename=None, level='INFO', **kwargs):
+    def __init__(self, filename=None, level='INFO', colored=True, **kwargs):
 
         '''
         filename: logging file name. It will not save to file if it is 'None'
@@ -71,9 +227,6 @@ class LoggingConfig:
         colored: colored console log
         reset: reset loggers. Setting this to True will disable all existed loggers
         '''
-
-        colored = kwargs.get('colored', False)
-
         
         console_formatter = ROOT_NAME+'-colored' if colored else ROOT_NAME
 
@@ -137,6 +290,7 @@ class LoggingConfig:
         reset: reset logger. Setting this to True will disable all existing loggers.
         '''
 
+        logging.setLoggerClass(GroupLogger)
         self.config['disable_existing_loggers'] = reset
         dictConfig(self.config)
 
