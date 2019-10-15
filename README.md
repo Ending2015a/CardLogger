@@ -1,8 +1,10 @@
-# logger
+# GroupLogger
 
 ## Installation
-1. Just clone this repository anywhere in your package.
-
+1. Just clone this repository anywhere into your package.
+```
+git clone https://github.com/Ending2015a/GroupLogger.git logger
+```
 
 ## Usage
 
