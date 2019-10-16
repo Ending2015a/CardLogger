@@ -80,3 +80,4 @@ for block in range(5):
     
     LOG.flush(logging.INFO)  # or simply pass 'INFO'
 ```
+![](https://github.com/Ending2015a/GroupLogger/blob/master/image/screenshot2.png)
