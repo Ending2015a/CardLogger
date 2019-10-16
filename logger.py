@@ -290,7 +290,7 @@ class LoggingConfig:
         reset: reset logger. Setting this to True will disable all existing loggers.
         '''
 
-        logging.setLoggerClass(GroupLogger)
+
         self.config['disable_existing_loggers'] = reset
         dictConfig(self.config)
 
@@ -304,6 +304,7 @@ class LoggingConfig:
         return conf
 
 
+logging.setLoggerClass(GroupLogger)
 
 __all__ = [
     LoggingConfig.__name__,
