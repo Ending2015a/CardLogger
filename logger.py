@@ -90,11 +90,17 @@ class GroupLogger(logging.Logger):
 
         self.current_group = name
 
-    def add_row(self, *kargs, fmt=None, **kwargs):
+    def add_row(self, *args, fmt=None, **kwargs):
         if not self.current_group in self.groups:
             self.groups[self.current_group] = []
 
-        self.groups[self.current_group].append( (kargs, kwargs, fmt) )
+        self.groups[self.current_group].append( (args, kwargs, fmt, False) )
+
+    def add_rows(self, key, value, fmt=None):
+        if not self.current_group in self.groups:
+            self.groups[self.current_group] = []
+
+        self.groups[self.current_group].append( ([key, value], None, fmt, True) )
 
     def clear(self):
         self.header = None
@@ -157,17 +163,70 @@ class GroupLogger(logging.Logger):
                 kargs = row[0]
                 kwargs = row[1]
                 fmt = row[2]
+                multi_line = row[3]
 
-                if fmt is None:
-                    fmt = '{}'
-                    if len(kargs) > 1:
-                        fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
+                if not multi_line:
 
-                string = fmt.format(*kargs, **kwargs)
+                    if fmt is None:
+                        fmt = '{}'
+                        if len(kargs) > 1:
+                            fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
 
-                group_str[group].append(string)
+                    string = fmt.format(*kargs, **kwargs)
 
-                max_length = max_length if len(string) < max_length else len(string)
+                    group_str[group].append(string)
+                
+                    max_length = max_length if len(string) < max_length else len(string)
+
+                else:
+                    # print multi line
+
+                    if fmt is None:
+                        fmt = '{}'
+                        if len(kargs) > 1:
+                            fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
+
+                    # 'aa\naaa', 'bbb\nbbbbb\ncc'
+                    kargs = [ str(arg).split('\n') for arg in kargs ]
+                    # ['aa', 'aaa'], ['bbb', 'bbbbb', 'cc']
+
+                    max_line_count = max(map(lambda x:len(x), kargs))
+                    # 3
+
+                    # '{}: {}'
+                    fmt_segments = fmt.split('{')
+                    # ['', '}: ', '}']
+
+                    strings = [fmt_segments[0] for _ in range(max_line_count)] # the format for each line
+
+
+
+                    strings_max_length = 0
+                    for idx, arg in enumerate(kargs):
+                        
+                        
+                        # for each arg segments (each line)
+                        for _idx, seg in enumerate(arg):
+                            strings[_idx] += seg
+                            strings_max_length = strings_max_length if len(strings[_idx]) < strings_max_length else len(strings[_idx])
+
+                        # pad
+                        for _idx in range(len(strings)):
+                            strings[_idx] += ' ' * (strings_max_length - len(strings[_idx])) # pad to same length with spaces
+
+                        # add next fmt segments
+                        if len(fmt_segments) >= idx+1:
+                            for _idx, _ in enumerate(strings):
+                                if _idx == 0:
+                                    strings[_idx] += fmt_segments[idx+1].replace('}', '')
+                                else:
+                                    strings[_idx] += ' ' * len(fmt_segments[idx+1])
+
+
+                    for string in strings:
+                        group_str[group].append(string)
+                        max_length = max_length if max_length > len(string) else len(string) 
+
 
         max_width = max_length + len('|  |')
 
