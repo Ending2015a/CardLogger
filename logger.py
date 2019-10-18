@@ -6,7 +6,7 @@ import logging
 
 from logging.config import dictConfig
 from collections import OrderedDict
-
+from string import Formatter
 
 
 LOG_FORMAT = '[%(asctime)s|%(threadName)s|%(levelname)s|%(name)s:%(filename)s:%(lineno)d]: %(message)s'
@@ -14,6 +14,10 @@ LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 ROOT_NAME = __name__.split('.', 1)[0]
 MODULE_PATH = __name__.rsplit('.', 1)[0]
+formatter_module = __import__(MODULE_PATH+'.formatter', fromlist=['.'])
+
+MultilineStringFormatter = getattr(formatter_module, 'MultilineStringFormatter')
+
 
 COLORED_LOG_FORMAT = '$TIME%(asctime)s$RESET $THREAD%(threadName)s$RESET $LEVEL[%(levelname)s]$RESET $MODULE%(name)s:%(filename)s:%(lineno)d$RESET: $LEVEL%(message)s$RESET'
 
@@ -96,11 +100,11 @@ class GroupLogger(logging.Logger):
 
         self.groups[self.current_group].append( (args, kwargs, fmt, False) )
 
-    def add_rows(self, key, value, fmt=None):
+    def add_rows(self, *args, fmt=None, **kwargs):
         if not self.current_group in self.groups:
             self.groups[self.current_group] = []
 
-        self.groups[self.current_group].append( ([key, value], None, fmt, True) )
+        self.groups[self.current_group].append( (args, kwargs, fmt, True) )
 
     def clear(self):
         self.header = None
@@ -176,7 +180,7 @@ class GroupLogger(logging.Logger):
 
                     group_str[group].append(string)
                 
-                    max_length = max_length if len(string) < max_length else len(string)
+                    max_length = max(max_length, string)
 
                 else:
                     # print multi line
@@ -185,6 +189,26 @@ class GroupLogger(logging.Logger):
                         fmt = '{}'
                         if len(kargs) > 1:
                             fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
+
+
+                    strings = MultilineStringFormatter().format(fmt, *kargs, **kwargs)
+
+                    for line in strings:
+                        group_str[group].append(line)
+                        max_length = max(max_length, len(line))
+
+
+
+                    '''
+                    # parse format
+                    # a: literal text
+                    # b: field name
+                    # c: format spec 
+                    # d: conversion
+                    parsed_fmt = [(a, b, c, d) for a, b, c, d in Formatter().parse(fmt)]
+
+
+                    
 
                     # 'aa\naaa', 'bbb\nbbbbb\ncc'
                     kargs = [ str(arg).split('\n') for arg in kargs ]
@@ -226,7 +250,7 @@ class GroupLogger(logging.Logger):
                     for string in strings:
                         group_str[group].append(string)
                         max_length = max_length if max_length > len(string) else len(string) 
-
+                    '''
 
         max_width = max_length + len('|  |')
 
@@ -234,12 +258,12 @@ class GroupLogger(logging.Logger):
         for group in self.groups.keys():
             group_width = len(group) + len('|-  -|')
 
-            max_width = max_width if group_width < max_width else group_width
+            max_width = max(max_width, group_width)
 
         if self.header is not None:
             header_width = len(self.header) + len('=====  =====')
 
-            max_width = max_width if header_width < max_width else header_width
+            max_width = max(max_width, header_width)
 
             if (max_width - len(self.header)) % 2 > 0:
                 max_width += 1
