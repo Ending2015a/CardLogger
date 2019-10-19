@@ -13,8 +13,8 @@ TEXT_FLF = 'Rectangles.flf'
 
 HEADER = 'flf2a'
 
-LINE_END = ['#', '@']
-FONT_END = ['##', '@@']
+LINE_END = ['#', '@', chr(127)]
+FONT_END = ['##', '@@', chr(127)*2]
 
 CHARSET_PATTERN = r'.*charset=(.*)$'
 matcher = re.compile(CHARSET_PATTERN)
@@ -150,7 +150,7 @@ if __name__ == '__main__':
         object_name, ext = basename.split('.')
 
         # convert to valid name
-        for rep in [' ', '/', '\\']:
+        for rep in [' ', '/', '\\', '-']:
             object_name = object_name.replace(rep, '_')
         
         output_filename = object_name + '.py'
