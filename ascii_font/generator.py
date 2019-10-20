@@ -19,6 +19,9 @@ FONT_END = ['##', '@@', chr(127)*2]
 CHARSET_PATTERN = r'.*charset=(.*)$'
 matcher = re.compile(CHARSET_PATTERN)
 
+
+
+
 def generate(input_filename, output_filename, object_name):
 
     out = subprocess.check_output('file -i "{}"'.format(input_filename), shell=True).decode('utf-8')
