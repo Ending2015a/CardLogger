@@ -94,17 +94,27 @@ class GroupLogger(logging.Logger):
 
         self.current_group = name
 
-    def add_row(self, *args, fmt=None, **kwargs):
+    def add_row(self, *args, fmt=None, align='left', **kwargs):
         if not self.current_group in self.groups:
             self.groups[self.current_group] = []
 
-        self.groups[self.current_group].append( (args, kwargs, fmt, False) )
+        assert align in ['left', 'center', 'left']
 
-    def add_rows(self, *args, fmt=None, **kwargs):
+        self.groups[self.current_group].append( (args, kwargs, fmt, False, align, False) )
+
+    def add_rows(self, *args, fmt=None, align='left', **kwargs):
         if not self.current_group in self.groups:
             self.groups[self.current_group] = []
 
-        self.groups[self.current_group].append( (args, kwargs, fmt, True) )
+        
+        assert align in ['left', 'center', 'right']
+
+        self.groups[self.current_group].append( (args, kwargs, fmt, True, align, False) )
+
+    def add_line(self):
+        
+        # args, kwargs, fmt, Multiline, align, horizontal line
+        self.groups[self.current_group].append( (None, None, None, False, None, True) )
 
     def clear(self):
         self.header = None
@@ -146,10 +156,26 @@ class GroupLogger(logging.Logger):
 
         return subheader
 
-    def _create_row(self, string, width):
+    def _create_row(self, string, align, width):
         remain = width - len(string) - 4
 
-        return ''.join(['| ', string, ' '*remain, ' |'])
+        if align == 'center':
+            l = remain//2
+            r = remain - l
+        elif align == 'left':
+            l = 0
+            r = remain
+        else: #right
+            r = 0
+            l = remain
+
+        return ''.join(['| ', ' '*l, string, ' '*r, ' |'])
+
+    def _create_line(self, width):
+        remain = width - 2 # | + ----- + |
+
+        return ''.join([ '|', '-'*remain, '|' ])
+
 
     def flush(self, level=logging.INFO):
         
@@ -168,19 +194,28 @@ class GroupLogger(logging.Logger):
                 kwargs = row[1]
                 fmt = row[2]
                 multi_line = row[3]
+                align = row[4]
+                line = row[5]
+
+                if line:
+                    # string, align, horizontal line
+                    group_str[group].append((None, None, True))
+                    continue
 
                 if not multi_line:
 
-                    if fmt is None:
+                    if fmt is None and len(kargs) > 0:
                         fmt = '{}'
                         if len(kargs) > 1:
                             fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
+                    else:
+                        fmt = ''
 
                     string = fmt.format(*kargs, **kwargs)
 
-                    group_str[group].append(string)
+                    group_str[group].append( (string, align, False) )
                 
-                    max_length = max(max_length, string)
+                    max_length = max(max_length, len(string))
 
                 else:
                     # print multi line
@@ -194,7 +229,7 @@ class GroupLogger(logging.Logger):
                     strings = MultilineStringFormatter().format(fmt, *kargs, **kwargs)
 
                     for line in strings:
-                        group_str[group].append(line)
+                        group_str[group].append( (line, align, False) )
                         max_length = max(max_length, len(line))
 
 
@@ -283,7 +318,7 @@ class GroupLogger(logging.Logger):
         if self.isEnabledFor(level):
             self._log(level, self._create_header(max_width), None)
 
-            for group, strings in group_str.items():
+            for group, contants in group_str.items():
 
                 if len(strings) == 0:
                     continue
@@ -292,8 +327,15 @@ class GroupLogger(logging.Logger):
 
                     self._log(level, self._create_subheader(group, max_width), None)
 
-                for contant in strings:
-                    self._log(level, self._create_row(contant, max_width), None)
+                for contant in contants:
+                    string = contant[0]
+                    align = contant[1]
+                    line = contant[2]
+                    # horizontal line
+                    if line:
+                        self._log(level, self._create_line(max_width), None)
+                    else:
+                        self._log(level, self._create_row(string, align, max_width), None)
 
             self._log(level, self._create_tail(max_width), None)
             self._log(level, '', None)

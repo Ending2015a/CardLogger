@@ -10,6 +10,9 @@ c_module = __import__(MODULE_PATH+'.cmd_colors', fromlist=['.'])
 C = getattr(c_module, 'Color')
 
 
+font_module = __import__(MODULE_PATH+'.ascii_font.__init__', fromlist=['.'])
+ascii_font = font_module #getattr(font_module, 'ascii_font')
+
 #from sshex.logger.cmd_colors import Color as C
 
 
@@ -104,11 +107,128 @@ class ColoredFormatter(logging.Formatter):
         record.levelname = original_levelname
 
         return s
+
+
+def _recursive_format(value, args):
+    '''
+    :returns: formatted single str object
+    '''
+
+    if len(args) == 0:
+        return format(value, '') # args = []
+    elif len(args) == 1:
+        return format(value, args[0]) # args ['03d']
+
+    # --- magic font ---
+    elif '@f' in args:
+        print(args)
+        index = args.index('@f')
+        print(index)
+        if len(args) <= index+1:
+            raise ValueError('No font type specified.')
+
+        font_type = args[index+1]
+
+        del args[index+1]
+        del args[index]
+    
+        # must be a str object
+        # !! recursive call !!
+        formatted_obj = _recursive_format(value, args)
+
+        # get ascii font for each character
+        objs = [obj.split('\n') for obj in ascii_font.retrieves(font_type, formatted_obj)]
         
+        # concat characters into a list of lines
+        lines = multilineformat(objs)
+
+        return '\n'.join(lines) #join to a single str
+
+    # error
+    return None
 
 
+def customformat(value, format_spec=''):
+
+    # split by ':'
+    # :@f:font:03d
+    args = format_spec.split(':')
+
+
+    formatted_obj = _recursive_format(value, args)
+
+
+    if formatted_obj is None:
+        raise ValueError('Unknown format code \'{}\' for object of type \'{}\''.format(format_spec, type(value)))
+
+    return formatted_obj.split('\n')
+
+
+def calculatemaxline(value_list):
+    max_count = 0
+    for v in value_list:
+        if isinstance(v, list) or isinstance(v, tuple):
+            max_count = max(max_count, len(v))
+
+    return max_count
+
+
+def multilineformat(result, max_line_count=None):
+
+
+    if max_line_count is None:
+        max_line_count = calculatemaxline(result)
+
+
+    # multi line formatting
+    lines = ['' for _ in range(max_line_count)]
+
+    current_max_length = 0
+
+    for idx, segment in enumerate(result):
+
+        # literal_text
+        if isinstance(segment, str):
+            # only the first line will add literal_text
+            lines[0] += segment
+            # others will append spaces
+            for line_id in range(1, max_line_count):
+                lines[line_id] += ' ' * len(segment)
+                    
+            current_max_length += len(segment)
+
+        # formatting
+        elif isinstance(segment, tuple):
+            spec = segment[0]
+            pattern = segment[1]
+
+            if spec == 'VERT':
+                for line_id in range(max_line_count):
+                    lines[line_id] += pattern
+
+                current_max_length += len(pattern)
+
+        # formatted object
+        else:
+            for line_id in range(len(segment)):
+                lines[line_id] += segment[line_id]
+
+                # update max length
+                current_max_length = max(current_max_length, len(lines[line_id]))
+            
+
+        # padding each line to current_max_length
+        for line_id in range(max_line_count):
+            lines[line_id] += ' ' * (current_max_length - len(lines[line_id])) # append spaces
+
+
+
+    return lines
 
 class MultilineStringFormatter(string.Formatter): 
+
+    def format_field(self, value, format_spec):
+        return customformat(value, format_spec)
 
     def _vformat(self, format_string, args, kwargs, used_args, recursion_depth, auto_arg_index=0):
 
@@ -162,15 +282,18 @@ class MultilineStringFormatter(string.Formatter):
                             used_args, recursion_depth-1,
                             auto_arg_index=auto_arg_index)
 
-                # split by \n
-                formatted_obj = self.format_field(obj, format_spec).split('\n')
+                # splitted by \n
+                formatted_obj = self.format_field(obj, format_spec)
+
 
                 # format the object and append to the result
                 result.append(formatted_obj)
 
                 max_line_count = max(max_line_count, len(formatted_obj))
 
-
+        lines = multilineformat(result, max_line_count)
+        
+        '''
         # multi line formatting
         lines = ['' for _ in range(max_line_count)]
 
@@ -211,7 +334,7 @@ class MultilineStringFormatter(string.Formatter):
             # padding each line to current_max_length
             for line_id in range(max_line_count):
                 lines[line_id] += ' ' * (current_max_length - len(lines[line_id])) # append spaces
-
+        '''
 
         return lines, auto_arg_index
 
