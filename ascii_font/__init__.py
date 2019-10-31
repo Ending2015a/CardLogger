@@ -10,28 +10,30 @@ import subprocess
 
 from .base import AsciiFont
 
-DEFAULT_FLF_PATH = './flf'
-DEFAULT_FLF_PATH = os.path.join(
+import dill
+
+DEFAULT_PKL_PATH = './pkl'
+DEFAULT_PKL_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 
-        DEFAULT_FLF_PATH)
+        DEFAULT_PKL_PATH)
 # absolute path
 
 FONT_TYPE_LIST = {}
 
 
-def load_font_type_list(installed_path=DEFAULT_FLF_PATH):
+def load_font_type_list(installed_path=DEFAULT_PKL_PATH):
     
-    for flf in os.listdir(installed_path):
+    for pkl in os.listdir(installed_path):
         
-        if not flf.endswith('.flf'):
+        if not pkl.endswith('.pkl'):
             continue
 
-        flf_path = os.path.join(installed_path, flf)
-        flf_name, _ = os.path.splitext(flf)
+        pkl_path = os.path.join(installed_path, pkl)
+        pkl_name, _ = os.path.splitext(pkl)
         for rep in [' ', '/', '\\', '-']:
-            flf_name = flf_name.replace(rep, '_')
+            pkl_name = pkl_name.replace(rep, '_')
 
-        FONT_TYPE_LIST[flf_name] = {'path': flf_path, 'module': None}
+        FONT_TYPE_LIST[pkl_name] = {'path': pkl_path, 'module': None}
 
 
         
@@ -50,7 +52,7 @@ def install_font_type(name, flf_path):
 
     FONT_TYPE_LIST[flf_name] = {'path':flf_path, 'module': None}
 
-
+'''
 def load(font_type):
 
     flf_path = FONT_TYPE_LIST[font_type]['path']
@@ -138,7 +140,28 @@ def load(font_type):
     FONT_TYPE_LIST[font_type]['module'] = font
     
     return font
+'''
 
+
+def load(font_type):
+    pkl_path = FONT_TYPE_LIST[font_type]['path']
+    
+    
+    with open(pkl_path, 'rb') as inpf:
+    
+        font_dict = dill.load(inpf)
+        
+    ascii_font = AsciiFont(font_dict['hardblank'])
+    for k, v in font_dict.items():
+        if k == 'hardblank':
+            continue
+        ascii_font[k] = v
+    
+    FONT_TYPE_LIST[font_type]['module'] = ascii_font
+    
+    return ascii_font
+    
+    
 def retrieves(font_type, chars):
     if font_type in FONT_TYPE_LIST:
         if FONT_TYPE_LIST[font_type]['module'] is not None:

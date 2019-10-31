@@ -8,20 +8,148 @@ from collections import deque
 
 import subprocess
 
+import dill
+from base import AsciiFont
 
 TEXT_FLF = 'Rectangles.flf'
 
 HEADER = 'flf2a'
 
-LINE_END = ['#', '@', chr(127)]
-FONT_END = ['##', '@@', chr(127)*2]
+line_end = ['#', '@', chr(127)]
+font_end = ['##', '@@', chr(127)*2]
 
-CHARSET_PATTERN = r'.*charset=(.*)$'
-matcher = re.compile(CHARSET_PATTERN)
-
-
+charset_pattern = r'.*charset=(.*)$'
+matcher = re.compile(charset_pattern)
 
 
+def _compile(input_filename, object_name):
+    out = subprocess.check_output('file -i "{}"'.format(input_filename), shell=True).decode('utf-8')
+
+
+    match = matcher.match(out)
+
+    if match is not None:
+        charset = match.group(1).strip()
+    else:
+        charset = 'utf-8'
+
+    if charset == 'binary':
+        print('Detect binary encoding')
+        charset = 'iso-8859-1'
+
+    print('    Using charactor set: {}'.format(charset))
+    with open(input_filename, 'r', encoding=charset) as inpf:
+        header = inpf.readline()
+        magic_number = header.split(' ')
+
+        assert magic_number[0].startswith(HEADER), 'Got an unexpected header: {}'.format(magic_number[0])
+
+        hardblank = magic_number[0].replace(HEADER, '')
+        ch_height = int(magic_number[1])
+
+        # create read buffer
+        read_buf = deque(maxlen=ch_height)
+        
+        font = {'hardblank': hardblank}
+        
+        current_ascii = 32
+        stop_ascii = 127
+        
+        for line in inpf:
+            line = line.replace('\n', '').rstrip()
+            
+            if not line:
+                continue
+                
+                
+            if not (line[-1] in line_end):
+                pass
+            else:
+                # font end
+                if not ((line[-2:] in font_end) and (len(read_buf) == read_buf.maxlen-1)):
+
+                    #if (not (line[-2:]) in font_end):
+
+                    end = line[-1]
+                    line = line.replace(end, '\n')
+
+                    read_buf.append(line)
+                else:
+
+                    end = line[-2:]
+                    line = line.replace(end, '')
+
+                    read_buf.append(line)
+
+                    char = chr(current_ascii)
+
+                    # concat to one string ('\n')
+                    font[char] = ''.join(read_buf)
+
+                    current_ascii += 1
+
+                    read_buf.clear()
+                    
+                    
+            if current_ascii == stop_ascii:
+                break
+    
+    return font
+
+
+if __name__ == '__main__':
+
+    assert len(sys.argv) >= 2, 'python compile.py [flf files]'
+
+    for argv in sys.argv[1:]:
+
+        input_filename = str(argv)
+
+        basename = os.path.basename(input_filename)
+
+        object_name, ext = basename.split('.')
+
+        # convert to valid name
+        for rep in [' ', '/', '\\', '-']:
+            object_name = object_name.replace(rep, '_')
+        
+        output_filename = os.path.join('pkl', object_name + '.pkl')
+
+        print('Compiling file "{}" to "{}"'.format(input_filename, output_filename))
+
+        try:
+            font_dict = _compile(input_filename, object_name)
+        except Exception as e:
+            print('    Failed to generate file: {}'.format(str(e)))
+            continue
+
+        print('    test loadability:')
+
+        try:
+            if not os.path.isfile(object_name):
+                time.sleep(0.1)
+                
+            ascii_font = AsciiFont(font_dict['hardblank'])
+            for k, v in font_dict.items():
+                if k == 'hardblank':
+                    continue
+                ascii_font[k] = v
+                
+            print(ascii_font['a'])
+            print(ascii_font['A'])
+            print(ascii_font['0'])
+            print('        Clear')
+        except:
+            print('        Failed')
+            raise
+            
+        # save ascii_font to pkl file
+        with open(output_filename, 'wb') as outf:
+            dill.dump(font_dict, outf)
+            
+        print('Save to {}'.format(output_filename))
+
+'''
 def generate(input_filename, output_filename, object_name):
 
     out = subprocess.check_output('file -i "{}"'.format(input_filename), shell=True).decode('utf-8')
@@ -178,3 +306,4 @@ if __name__ == '__main__':
         except:
             print('        Failed')
             raise
+'''
