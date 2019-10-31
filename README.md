@@ -11,7 +11,7 @@ git clone https://github.com/Ending2015a/GroupLogger.git logger
 ```
 ├── main.py
 └── my_module (your package)
-    └── logger
+    └── logger    <- here
     └── ......
 ```
 ### Simple logging
