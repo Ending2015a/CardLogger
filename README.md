@@ -10,18 +10,18 @@ git clone https://github.com/Ending2015a/GroupLogger.git logger
 
 ```
 ├── main.py
-└── my_module (package)
+└── my_module (your package)
     └── logger
     └── ......
 ```
-### Example 1
+### Simple logging
 ```python
 # main.py
-import my_module.logger
+from my_module import logger
 
-my_module.logger.Config.Use(filename='hello.log', level='DEBUG', colored=True)
+logger.Config.Use(filename='hello.log', level='DEBUG', colored=True, reset=False)
 
-LOG = my_module.logger.getLogger('main')
+LOG = logger.getLogger('main')
 
 LOG.debug('hello, debug')
 LOG.info('hello, info')
@@ -36,7 +36,7 @@ except:
 
 ![](https://github.com/Ending2015a/logger/blob/master/image/screenshot.png)
 
-### Example 2
+### Grouped logging
 ```python
 # main.py
 from my_module import logger
@@ -44,40 +44,72 @@ logger.Config.Use('filename'='hello.log', 'level'='DEBUG', colored=True, reset=F
 
 LOG = logger.getLogger('main')
 
-# create 5 blocks
 for block in range(5):
-    LOG.set_header('{}th block'.format(block))
+    LOG.set_header('block {}/{}'.format(block+1, 5))
+
+    LOG.subgroup('Items')
+    LOG.add_row('item1', 10)
+    LOG.add_row('item2', 3.14159265358979323846, fmt='{}: {:.5f}')
+    LOG.add_row('item3', [x+block for x in range(5)])
+
+    LOG.subgroup('Alignment')
+    LOG.add_row('align', 'to', 'left', fmt='{}-{}-{}', align='l')
+    LOG.add_row('align', 'to', 'center', fmt='{}-{}-{}', align='c')
+    LOG.add_row('align', 'to', 'right', fmt='{}-{}-{}', align='r')
     
-    # add a new row to subgroup 'None'
-    LOG.add_row('row 1')
-    
-    # switch to subgroup 'line'
-    LOG.subgroup('line')
-    
-    # print something out
-    for line in range(block+1):
-        # custom output format
-        LOG.add_row('this is line', line, fmt='{}: {}')
-    
-    # switch to subgroup 'stars'
-    LOG.subgroup('stars')
-    
-    # print something out
-    for star in range(block+5):
-        # support keyword arguments formatting
-        LOG.add_row(des='star {:02d}'.format(star), stars='*' * star, fmt='{des}: {stars}')
-        
-    # switch back to 'None'
-    LOG.subgroup()
-    LOG.add_row('row 2')
-    LOG.add_row('row 3')
-    
-    LOG.subgroup('number')
-    
-    # formatting
-    LOG.add_row('random int', num=random.randint(132716, 36453426), fmt='{}: {num:010d}')
-    LOG.add_row('random float', num=random.random(), fmt='{}: {num:8.6f}')
-    
-    LOG.flush(logging.INFO)  # or simply pass 'INFO'
+
+    LOG.subgroup('Stars')
+
+    for i in range(5+block):
+        LOG.add_row('*' * i)
+
+    LOG.flush('INFO')
+
 ```
 ![](https://github.com/Ending2015a/GroupLogger/blob/master/image/screenshot2.png)
+
+
+### Multi-line
+* call `add_rows` to output multi-line logging
+* vertical line `{|[pattern]}`, e.g. `{|*}`, `{||}`, `{|||}`
+* magic font `{:@f:[font_type]}`, e.g. `{:@f:ANSI_Shadow}`
+    * combine with normal spec `{:@f:ANSI_Shadow:05d}`
+
+```python
+from my_module import logger
+import numpy as np
+
+logger.Config.Use(filename='hello.log', level='DEBUG', colored=True, reset=False)
+
+LOG = logger.getLogger('main')
+
+# numpy arrays
+a = np.zeros(shape=(3, 3))
+b = np.zeros(shape=(8, 4))
+c = np.zeros(shape=(10, 1))
+d = np.zeros(shape=(4, 4, 3))
+
+LOG.set_header('Arrays')
+
+caption = '''
+These are numpy arrays.
+
+The shapes from left
+to right are:
+
+* 3x3
+* 8x4
+* 10x1
+* 4x4x3
+'''
+
+LOG.add_row('')
+LOG.add_rows('My Arrays', fmt='{:@f:ANSI_Shadow}', align='center')
+LOG.add_line()
+LOG.add_rows(3.14159265358979323846, fmt='{:@f:Train:8.5f}', align='right')
+LOG.add_line()
+LOG.add_rows(caption, a=a, b=b, c=c, d=d, fmt='{} {|*} {a} {||} {b} {||} {c} {||} {d}')
+
+LOG.flush('DEBUG')
+```
+![](https://github.com/Ending2015a/GroupLogger/blob/master/image/screenshot3.png)
