@@ -71,6 +71,9 @@ def getLogger(name=None, level=None, prefix=ROOT_NAME):
 
 
 class GroupLogger(logging.Logger):
+
+    _alignment_abbreviation = {'l': 'left', 'c': 'center', 'r': 'right'}
+
     def __init__(self, name, level=logging.NOTSET):
         super(GroupLogger, self).__init__(name, level)
 
@@ -98,7 +101,10 @@ class GroupLogger(logging.Logger):
         if not self.current_group in self.groups:
             self.groups[self.current_group] = []
 
-        assert align in ['left', 'center', 'left']
+        if align in self._alignment_abbreviation:
+            align = self._alignment_abbreviation[align]
+
+        assert align in ['left', 'center', 'right']
 
         self.groups[self.current_group].append( (args, kwargs, fmt, False, align, False) )
 
@@ -106,6 +112,8 @@ class GroupLogger(logging.Logger):
         if not self.current_group in self.groups:
             self.groups[self.current_group] = []
 
+        if align in self._alignment_abbreviation:
+            align = self._alignment_abbreviation[align]
         
         assert align in ['left', 'center', 'right']
 
@@ -190,12 +198,13 @@ class GroupLogger(logging.Logger):
                 group_str[group] = []
 
             for row in rows:
-                kargs = row[0]
+                args = row[0]
                 kwargs = row[1]
                 fmt = row[2]
                 multi_line = row[3]
                 align = row[4]
                 line = row[5]
+
 
                 if line:
                     # string, align, horizontal line
@@ -204,14 +213,15 @@ class GroupLogger(logging.Logger):
 
                 if not multi_line:
 
-                    if fmt is None and len(kargs) > 0:
-                        fmt = '{}'
-                        if len(kargs) > 1:
-                            fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
-                    else:
-                        fmt = ''
+                    if fmt is None:
+                        if len(args) > 0:
+                            fmt = '{}'
+                            if len(args) > 1:
+                                fmt += ': ' + ', '.join(['{}' for _ in range(len(args[1:]))])
+                        else:
+                            fmt = ''
 
-                    string = fmt.format(*kargs, **kwargs)
+                    string = fmt.format(*args, **kwargs)
 
                     group_str[group].append( (string, align, False) )
                 
@@ -221,12 +231,14 @@ class GroupLogger(logging.Logger):
                     # print multi line
 
                     if fmt is None:
-                        fmt = '{}'
-                        if len(kargs) > 1:
-                            fmt += ': ' + ', '.join(['{}' for _ in range(len(kargs[1:]))])
+                        if len(args) > 0:
+                            fmt = '{}'
+                            if len(args) > 1:
+                                fmt += ': ' + ', '.join(['{}' for _ in range(len(args[1:]))])
+                        else:
+                            fmt = ''
 
-
-                    strings = MultilineStringFormatter().format(fmt, *kargs, **kwargs)
+                    strings = MultilineStringFormatter().format(fmt, *args, **kwargs)
 
                     for line in strings:
                         group_str[group].append( (line, align, False) )
@@ -318,19 +330,19 @@ class GroupLogger(logging.Logger):
         if self.isEnabledFor(level):
             self._log(level, self._create_header(max_width), None)
 
-            for group, contants in group_str.items():
+            for group, contents in group_str.items():
 
-                if len(strings) == 0:
+                if len(contents) == 0:
                     continue
 
                 if group is not 'None':
 
                     self._log(level, self._create_subheader(group, max_width), None)
 
-                for contant in contants:
-                    string = contant[0]
-                    align = contant[1]
-                    line = contant[2]
+                for content in contents:
+                    string = content[0]
+                    align = content[1]
+                    line = content[2]
                     # horizontal line
                     if line:
                         self._log(level, self._create_line(max_width), None)

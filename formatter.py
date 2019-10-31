@@ -121,9 +121,9 @@ def _recursive_format(value, args):
 
     # --- magic font ---
     elif '@f' in args:
-        print(args)
+        #print(args)
         index = args.index('@f')
-        print(index)
+        #print(index)
         if len(args) <= index+1:
             raise ValueError('No font type specified.')
 
