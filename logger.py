@@ -70,12 +70,20 @@ def getLogger(name=None, level=None, prefix=ROOT_NAME):
 
 
 
-class GroupLogger(logging.Logger):
+class CardLogger(logging.Logger):
+    
+    #'======= Epoch 5/10 ======='
+    #'|------- Training -------|'
+    #'| loss: 100.0            |'
+    #'| entropy: 1132121.456   |'
+    #'|--------- Eval ---------|'
+    #'| loss: 2121.17455       |'
+    #'=========================='
 
     _alignment_abbreviation = {'l': 'left', 'c': 'center', 'r': 'right'}
 
     def __init__(self, name, level=logging.NOTSET):
-        super(GroupLogger, self).__init__(name, level)
+        super().__init__(name, level)
 
         self.header = None
         self.groups = OrderedDict()
@@ -145,14 +153,6 @@ class GroupLogger(logging.Logger):
 
     def _create_subheader(self, name, width):
 
-        #'======= Epoch 5/10 ======='
-        #'|------- Training -------|'
-        #'| loss: 100.0            |'
-        #'| entropy: 1132121.456   |'
-        #'|--------- Eval ---------|'
-        #'| loss: 2121.17455       |'
-        #'=========================='
-
         remain = width - len(name)
         l_half = remain // 2
         r_half = remain - l_half
@@ -184,8 +184,10 @@ class GroupLogger(logging.Logger):
 
         return ''.join([ '|', '-'*remain, '|' ])
 
-
-    def flush(self, level=logging.INFO):
+    def _format_contents(self):
+        '''
+        Formatting contents
+        '''
         
         group_str = OrderedDict()
 
@@ -244,64 +246,10 @@ class GroupLogger(logging.Logger):
                         group_str[group].append( (line, align, False) )
                         max_length = max(max_length, len(line))
 
-
-
-                    '''
-                    # parse format
-                    # a: literal text
-                    # b: field name
-                    # c: format spec 
-                    # d: conversion
-                    parsed_fmt = [(a, b, c, d) for a, b, c, d in Formatter().parse(fmt)]
-
-
-                    
-
-                    # 'aa\naaa', 'bbb\nbbbbb\ncc'
-                    kargs = [ str(arg).split('\n') for arg in kargs ]
-                    # ['aa', 'aaa'], ['bbb', 'bbbbb', 'cc']
-
-                    max_line_count = max(map(lambda x:len(x), kargs))
-                    # 3
-
-                    # '{}: {}'
-                    fmt_segments = fmt.split('{')
-                    # ['', '}: ', '}']
-
-                    strings = [fmt_segments[0] for _ in range(max_line_count)] # the format for each line
-
-
-
-                    strings_max_length = 0
-                    for idx, arg in enumerate(kargs):
-                        
-                        
-                        # for each arg segments (each line)
-                        for _idx, seg in enumerate(arg):
-                            strings[_idx] += seg
-                            strings_max_length = strings_max_length if len(strings[_idx]) < strings_max_length else len(strings[_idx])
-
-                        # pad
-                        for _idx in range(len(strings)):
-                            strings[_idx] += ' ' * (strings_max_length - len(strings[_idx])) # pad to same length with spaces
-
-                        # add next fmt segments
-                        if len(fmt_segments) >= idx+1:
-                            for _idx, _ in enumerate(strings):
-                                if _idx == 0:
-                                    strings[_idx] += fmt_segments[idx+1].replace('}', '')
-                                else:
-                                    strings[_idx] += ' ' * len(fmt_segments[idx+1])
-
-
-                    for string in strings:
-                        group_str[group].append(string)
-                        max_length = max_length if max_length > len(string) else len(string) 
-                    '''
-
+        # calculate max length
         max_width = max_length + len('|  |')
 
-        # compute max sub header length
+        # calculate max sub header length
         for group in self.groups.keys():
             group_width = len(group) + len('|-  -|')
 
@@ -316,6 +264,49 @@ class GroupLogger(logging.Logger):
                 max_width += 1
 
 
+        # formatting message
+        messages = []
+        messages.append(self._create_header(max_width))
+
+        for group, contents in group_str.items():
+
+            if len(contents) == 0:
+                continue
+
+            if group is not 'None':
+                messages.append(self._create_subheader(group, max_width))
+
+            for content in contents:
+                string = content[0]
+                align = content[1]
+                line = content[2]
+                # horizontal line
+                if line:
+                    messages.append(self._create_line(max_width))
+                else:
+                    messages.append(self._create_row(string, align, max_width))
+
+        messages.append(self._create_tail(max_width))
+            
+        return messages
+    
+
+    def flush(self, level=logging.INFO, 
+                    tostring=None, 
+                    tolist=None, 
+                    new_line=True,
+                    contents=None):
+        '''
+        Flush content
+        
+        args:
+            tostring: convert to a single string
+            tolist: convert to a list of strings
+            new_line: add a new line after the contents
+            contents: a str or a list of str
+        '''
+
+
         if isinstance(level, str):
             level = logging.getLevelName(level)
 
@@ -324,10 +315,45 @@ class GroupLogger(logging.Logger):
                 raise TypeError('level must be an integer or string')
             else:
                 return
-
-
-        # output to log
+        
         if self.isEnabledFor(level):
+        
+            if contents is not None:
+            
+                assert isinstance(contents, (str, list)), 'The contents must be a str or a list of str'
+                
+                if isinstance(contents, str):
+                    contents = contents.split('\n')
+            else:
+                contents = self._format_contents()
+                
+            
+            assert isinstance(contents, list)
+            
+            # add a new line
+            if new_line:
+                contents.append('')
+                
+                
+            assert not (tostring and tolist), 'tostring and tolist, only one can be True'
+            
+            # convert to list
+            if tolist:
+                self.clear()
+                return contents
+                
+            # convert to string
+            if tostring:
+                contents = '\n'.join(contents)
+                self.clear()
+                return contents
+                
+            # output to log
+            for c in contents:
+                self._log(level, c, None)
+
+
+            '''
             self._log(level, self._create_header(max_width), None)
 
             for group, contents in group_str.items():
@@ -351,18 +377,26 @@ class GroupLogger(logging.Logger):
 
             self._log(level, self._create_tail(max_width), None)
             self._log(level, '', None)
+            '''
 
         self.clear()
+        
+        if tostring:
+            return ''
+        if tolist:
+            return []
 
 
 class LoggingConfig:
     def __init__(self, filename=None, level='INFO', colored=True, **kwargs):
 
         '''
-        filename: logging file name. It will not save to file if it is 'None'
-        level: logging level on console. The logging level saving to file is always set to 'DEBUG'
-        colored: colored console log
-        reset: reset loggers. Setting this to True will disable all existed loggers
+        args:
+            filename: logging file name. It will not save to file if it is 'None'
+            level: logging level on console. The logging level saving to file is always set to 'DEBUG'
+            colored: colored console log
+        kwargs:
+            reset: reset loggers. Setting this to True will disable all existed loggers
         '''
         
         console_formatter = ROOT_NAME+'-colored' if colored else ROOT_NAME
@@ -420,7 +454,7 @@ class LoggingConfig:
 
 
 
-    def Apply(self, reset=False):
+    def apply(self, reset=False):
         '''
         Apply configurations
 
@@ -432,16 +466,16 @@ class LoggingConfig:
         dictConfig(self.config)
 
     @classmethod
-    def Use(cls, **kwargs):
+    def use(cls, **kwargs):
         reset = kwargs.pop('reset', False)
 
         conf = cls(**kwargs)
-        conf.Apply(reset=reset)
+        conf.apply(reset=reset)
 
         return conf
 
 
-logging.setLoggerClass(GroupLogger)
+logging.setLoggerClass(CardLogger)
 
 __all__ = [
     LoggingConfig.__name__,

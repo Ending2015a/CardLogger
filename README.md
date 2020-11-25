@@ -1,9 +1,10 @@
-# GroupLogger
+# CardLogger
+CardLogger is a colorful logging module for Python.
 
 ## Installation
 1. Just clone this repository into anywhere in your package.
 ```
-git clone https://github.com/Ending2015a/GroupLogger.git logger
+git clone https://github.com/Ending2015a/CardLogger.git logger
 ```
 
 ## Usage
@@ -19,7 +20,7 @@ git clone https://github.com/Ending2015a/GroupLogger.git logger
 # main.py
 from my_module import logger
 
-logger.Config.Use(filename='hello.log', level='DEBUG', colored=True, reset=False)
+logger.Config.use(filename='hello.log', level='DEBUG', colored=True, reset=False)
 
 LOG = logger.getLogger('main')
 
@@ -40,7 +41,7 @@ except:
 ```python
 # main.py
 from my_module import logger
-logger.Config.Use('filename'='hello.log', 'level'='DEBUG', colored=True, reset=False)
+logger.Config.use(filename='hello.log', level='DEBUG', colored=True, reset=False)
 
 LOG = logger.getLogger('main')
 
@@ -79,7 +80,7 @@ for block in range(5):
 from my_module import logger
 import numpy as np
 
-logger.Config.Use(filename='hello.log', level='DEBUG', colored=True, reset=False)
+logger.Config.use(filename='hello.log', level='DEBUG', colored=True, reset=False)
 
 LOG = logger.getLogger('main')
 
