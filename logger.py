@@ -89,6 +89,9 @@ def warn(msg, *args, **kwargs):
 def debug(msg, *args, **kwargs):
     getLogger()._log(DEBUG, msg, *args, **kwargs)
 
+def info(msg, *args, **kwargs):
+    getLogger()._log(INFO, msg, *args, **kwargs)
+
 
 class CardLogger(logging.Logger):
     
