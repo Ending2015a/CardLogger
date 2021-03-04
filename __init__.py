@@ -4,9 +4,12 @@ from .logger import LoggingConfig as Config
 from .formatter import ColoredFormatter
 from . import misc
 
+from .logger import *
+
+
 __all__ = [
-    getLogger.__name__,
-    Config.__name__,
-    ColoredFormatter.__name__,
-    misc.__name__
+    'getLogger',
+    'Config',
+    'ColoredFormatter',
+    'misc'
 ]
