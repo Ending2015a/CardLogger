@@ -66,31 +66,31 @@ def getLogger(name=None, level=None, prefix=ROOT_NAME):
 
 
 def log(level, msg, *args, **kwargs):
-    getLogger()._log(level, msg, *args, **kwargs)
+    getLogger()._log(level, msg, args, **kwargs)
 
 def critical(msg, *args, **kwargs):
-    getLogger()._log(CRITICAL, msg, *args, **kwargs)
+    getLogger()._log(CRITICAL, msg, args, **kwargs)
 
 def fatal(msg, *args, **kwargs):
-    getLogger()._log(CRITICAL, msg, *args, **kwargs)
+    getLogger()._log(CRITICAL, msg, args, **kwargs)
 
 def error(msg, *args, **kwargs):
-    getLogger()._log(ERROR, msg, *args, **kwargs)
+    getLogger()._log(ERROR, msg, args, **kwargs)
 
 def exception(msg, *args, exc_info=True, **kwargs):
-    getLogger()._log(ERROR, msg, *args, exc_info=exc_info, **kwargs)
+    getLogger()._log(ERROR, msg, args, exc_info=exc_info, **kwargs)
 
 def warning(msg, *args, **kwargs):
-    getLogger()._log(WARNING, msg, *args, **kwargs)
+    getLogger()._log(WARNING, msg, args, **kwargs)
 
 def warn(msg, *args, **kwargs):
-    getLogger()._log(WARN, msg, *args, **kwargs)
+    getLogger()._log(WARN, msg, args, **kwargs)
 
 def debug(msg, *args, **kwargs):
-    getLogger()._log(DEBUG, msg, *args, **kwargs)
+    getLogger()._log(DEBUG, msg, args, **kwargs)
 
 def info(msg, *args, **kwargs):
-    getLogger()._log(INFO, msg, *args, **kwargs)
+    getLogger()._log(INFO, msg, args, **kwargs)
 
 
 class CardLogger(logging.Logger):
