@@ -24,7 +24,7 @@ COLORED_LOG_FORMAT = '$TIME%(asctime)s$RESET $THREAD%(threadName)s$RESET $LEVEL[
 
 
 __all__ = [
-    'CRITICAL', 'DEBUG', 'ERROR', 'FATAL', 'INFO', 'WARN', 'WARNING', 'getlevelName', 'NOTSET', 'addLevelName',
+    'CRITICAL', 'DEBUG', 'ERROR', 'FATAL', 'INFO', 'WARN', 'WARNING', 'getLevelName', 'NOTSET', 'addLevelName',
     'critical', 'debug', 'error', 'fatal', 'info', 'warn', 'warning', 'log',
     'getLogger', 'CardLogger'
 ]
