@@ -8,6 +8,7 @@ from logging.config import dictConfig
 from collections import OrderedDict
 from string import Formatter
 
+from logging import CRITICAL, DEBUG, ERROR, FATAL, INFO, WARN, WARNING, getLevelName, NOTSET, addLevelName
 
 LOG_FORMAT = '[%(asctime)s|%(threadName)s|%(levelname)s|%(name)s:%(filename)s:%(lineno)d]: %(message)s'
 LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -22,16 +23,11 @@ MultilineStringFormatter = getattr(formatter_module, 'MultilineStringFormatter')
 COLORED_LOG_FORMAT = '$TIME%(asctime)s$RESET $THREAD%(threadName)s$RESET $LEVEL[%(levelname)s]$RESET $MODULE%(name)s:%(filename)s:%(lineno)d$RESET: $LEVEL%(message)s$RESET'
 
 
-def makedirs(path):
-    if not path:
-        return
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        import errno
-        if e.errno != errno.EEXIST:
-            raise
-
+__all__ = [
+    'CRITICAL', 'DEBUG', 'ERROR', 'FATAL', 'INFO', 'WARN', 'WARNING', 'getlevelName', 'NOTSET', 'addLevelName',
+    'critical', 'debug', 'error', 'fatal', 'info', 'warn', 'warning', 'log',
+    'getLogger', 'CardLogger'
+]
 
 def _exists(name):
     '''
@@ -56,18 +52,42 @@ def getLogger(name=None, level=None, prefix=ROOT_NAME):
         name = prefix
 
 
-    # if the logger does not exist, nad no level is specified, then use default level (DEBUG)
+    # if logger not exist, and no level specified, use default level (DEBUG)
     if (level is None) and (not _exists(name)):
         level = 'DEBUG' 
+        
 
     logger = logging.getLogger(name)
 
-    if not (level is None):
+    if level is not None:
         logger.setLevel(logging.getLevelName(level))
 
     return logger
 
 
+def log(level, msg, *args, **kwargs):
+    getLogger()._log(level, msg, *args, **kwargs)
+
+def critical(msg, *args, **kwargs):
+    getLogger()._log(CRITICAL, msg, *args, **kwargs)
+
+def fatal(msg, *args, **kwargs):
+    getLogger()._log(CRITICAL, msg, *args, **kwargs)
+
+def error(msg, *args, **kwargs):
+    getLogger()._log(ERROR, msg, *args, **kwargs)
+
+def exception(msg, *args, exc_info=True, **kwargs):
+    getLogger()._log(ERROR, msg, *args, exc_info=exc_info, **kwargs)
+
+def warning(msg, *args, **kwargs):
+    getLogger()._log(WARNING, msg, *args, **kwargs)
+
+def warn(msg, *args, **kwargs):
+    getLogger()._log(WARN, msg, *args, **kwargs)
+
+def debug(msg, *args, **kwargs):
+    getLogger()._log(DEBUG, msg, *args, **kwargs)
 
 
 class CardLogger(logging.Logger):
@@ -406,8 +426,7 @@ class LoggingConfig:
         if output_to_file:
 
             path = os.path.dirname(filename)
-            makedirs(path)
-
+            os.makedirs(path, exist_ok=True)
 
         config = {
             'version': 1,
@@ -476,7 +495,3 @@ class LoggingConfig:
 
 
 logging.setLoggerClass(CardLogger)
-
-__all__ = [
-    LoggingConfig.__name__,
-]
