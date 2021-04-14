@@ -8,7 +8,7 @@ from collections import deque
 
 import subprocess
 
-import dill
+import cloudpickle
 from base import AsciiFont
 
 TEXT_FLF = 'Rectangles.flf'
@@ -145,7 +145,7 @@ if __name__ == '__main__':
             
         # save ascii_font to pkl file
         with open(output_filename, 'wb') as outf:
-            dill.dump(font_dict, outf)
+            cloudpickle.dump(font_dict, outf)
             
         print('Save to {}'.format(output_filename))
 

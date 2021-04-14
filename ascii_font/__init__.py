@@ -10,7 +10,7 @@ import subprocess
 
 from .base import AsciiFont
 
-import dill
+import cloudpickle as pickle
 
 DEFAULT_PKL_PATH = './pkl'
 DEFAULT_PKL_PATH = os.path.join(
@@ -149,7 +149,7 @@ def load(font_type):
     
     with open(pkl_path, 'rb') as inpf:
     
-        font_dict = dill.load(inpf)
+        font_dict = pickle.load(inpf)
         
     ascii_font = AsciiFont(font_dict['hardblank'])
     for k, v in font_dict.items():
