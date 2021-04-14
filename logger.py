@@ -429,7 +429,8 @@ class LoggingConfig:
         if output_to_file:
 
             path = os.path.dirname(filename)
-            os.makedirs(path, exist_ok=True)
+            if path:
+                os.makedirs(path, exist_ok=True)
 
         config = {
             'version': 1,
